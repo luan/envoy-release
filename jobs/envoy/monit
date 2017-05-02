@@ -1,0 +1,4 @@
+check process envoy
+  with pidfile /var/vcap/sys/run/envoy/envoy.pid
+  start program "/var/vcap/jobs/envoy/bin/envoy_ctl start"
+  stop program "/var/vcap/jobs/envoy/bin/envoy_ctl stop"

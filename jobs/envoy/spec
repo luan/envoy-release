@@ -10,7 +10,7 @@ templates:
 
 packages:
 - envoy
-- pid_utils
+- envoy_pid_utils
 
 properties:
   tls.cert:

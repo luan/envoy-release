@@ -2,7 +2,79 @@
   "listeners": [
     {
       "address": "tcp://127.0.0.1:18001",
-      "filters": []
+      "filters": [
+        {
+          "type": "read",
+          "name": "http_connection_manager",
+          "config": {
+            "codec_type": "auto",
+            "stat_prefix": "ingress_http",
+            "access_log": [
+              {
+                "path": "/var/vcap/sys/log/envoy/ingress_http.log",
+                "filter": {"type": "not_healthcheck"},
+              }
+              {
+                "path": "/var/vcap/sys/log/envoy/ingress_http_error.log",
+                "filter": {"type": "logical_and", "filters": [
+                  {"type": "logical_or", "filters": [
+                    {"type": "status_code", "op": ">=", "value": 400},
+                    {"type": "status_code", "op": "=", "value": 0},
+                    {"type": "duration", "op": ">=", "value": 2000},
+                    {"type": "traceable_request"}
+                  ]
+                  },
+                  {"type": "not_healthcheck"}
+                ]
+                }
+              },
+              {
+                "path": "/var/vcap/sys/log/envoy/ingress_http_sampled.log",
+                "filter": {"type": "logical_and", "filters": [
+                  {"type": "not_healthcheck"},
+                  {"type": "runtime", "key": "access_log.ingress_http"}
+                ]
+                }
+              }
+            ],
+            "route_config": {
+              "virtual_hosts": [
+                {
+                  "name": "bbs",
+                  "domains": ["*"],
+                  "routes": [
+                    {
+                      "cluster": "bbs",
+                      "timeout_ms": 0,
+                      "prefix": "/",
+                      "retry_policy": {
+                        "retry_on": "5xx,connect-failure,retriable-4xx,refused-stream",
+                        "num_retries": 5,
+                        "per_try_timeout_ms": 3000,
+                      }
+                    }
+                  ],
+                }
+              ]
+            },
+            "filters": [
+              {
+                "type": "both",
+                "name": "health_check",
+                "config": {
+                  "pass_through_mode": true,
+                  "endpoint": "/v1/ping"
+                }
+              },
+              {
+                "type": "decoder",
+                "name": "router",
+                "config": {}
+              }
+            ]
+          }
+        }
+      ]
     }
   ],
   "admin": {
@@ -14,15 +86,15 @@
       {
         "name": "bbs",
         "type": "strict_dns",
-        "connect_timeout_ms": "2000",
+        "connect_timeout_ms": 2000,
         "lb_type": "random",
         "hosts": [{"url": "tcp://bbs.service.cf.internal:8889"}],
         "health_check": {
           "type": "http",
-          "timeout_ms": "1000",
-          "interval_ms": "200",
-          "unhealthy_threshold": "3",
-          "healthy_threshold": "1",
+          "timeout_ms": 1000,
+          "interval_ms": 200,
+          "unhealthy_threshold": 3,
+          "healthy_threshold": 1,
           "path": "/v1/ping"
         },
         "ssl_context": {
@@ -32,7 +104,7 @@
           "verify_subject_alt_name": ["bbs.service.cf.internal"],
           "sni": "envoy-bbs"
         }
-        "dns_refresh_rate_ms": "1000"
+        "dns_refresh_rate_ms": 1000
       }
     ]
   }
