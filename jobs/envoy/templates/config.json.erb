@@ -1,0 +1,39 @@
+{
+  "listeners": [
+    {
+      "address": "tcp://127.0.0.1:18001",
+      "filters": []
+    }
+  ],
+  "admin": {
+    "access_log_path": "/var/vcap/sys/log/envoy/admin-access.log",
+    "address": "tcp://0.0.0.0:19000"
+  },
+  "cluster_manager": {
+    "clusters": [
+      {
+        "name": "bbs",
+        "type": "strict_dns",
+        "connect_timeout_ms": "2000",
+        "lb_type": "random",
+        "hosts": [{"url": "tcp://bbs.service.cf.internal:8889"}],
+        "health_check": {
+          "type": "http",
+          "timeout_ms": "1000",
+          "interval_ms": "200",
+          "unhealthy_threshold": "3",
+          "healthy_threshold": "1",
+          "path": "/v1/ping"
+        },
+        "ssl_context": {
+          "cert_chain_file": "<%= p('tls.cert') %>",
+          "private_key_file": "<%= p('tls.key') %>",
+          "ca_cert_file": "<%= p('tls.ca_cert') %>",
+          "verify_subject_alt_name": ["bbs.service.cf.internal"],
+          "sni": "envoy-bbs"
+        }
+        "dns_refresh_rate_ms": "1000"
+      }
+    ]
+  }
+}

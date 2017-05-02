@@ -1,0 +1,50 @@
+#!/bin/bash -e
+
+RUN_DIR=/var/vcap/sys/run/envoy
+LOG_DIR=/var/vcap/sys/log/envoy
+CONF_DIR=/var/vcap/jobs/envoy/config
+DATA_DIR=/var/vcap/data/envoy
+TMP_DIR=$DATA_DIR/tmp
+
+PIDFILE=$RUN_DIR/envoy.pid
+
+source /var/vcap/packages/pid_utils/pid_utils.sh
+
+case $1 in
+
+  start)
+    pid_guard $PIDFILE "envoy"
+
+    mkdir -p $RUN_DIR
+    chown -R vcap:vcap $RUN_DIR
+
+    mkdir -p $LOG_DIR
+    chown -R vcap:vcap $LOG_DIR
+
+    mkdir -p $DATA_DIR
+    chown -R vcap:vcap $DATA_DIR
+
+    mkdir -p $TMP_DIR
+    chown -R vcap:vcap $TMP_DIR
+
+    # Allowed number of open file descriptors
+    ulimit -n 100000
+
+    /var/vcap/packages/envoy/bin/envoy \
+      --config=$CONF_DIR/envoy.json \
+      2> >(tee -a $LOG_DIR/envoy.stderr.log | logger -p user.error -t vcap.envoy) \
+      1> >(tee -a $LOG_DIR/envoy.stdout.log | logger -p user.info -t vcap.envoy) & echo $! > $PIDFILE
+
+    ;;
+
+  stop)
+    kill_and_wait $PIDFILE
+
+    ;;
+
+  *)
+    echo "Usage: envoy_ctl {start|stop}"
+
+    ;;
+
+esac

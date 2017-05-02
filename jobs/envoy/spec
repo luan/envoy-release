@@ -1,0 +1,21 @@
+---
+name: envoy
+
+templates:
+  config.json.erb: config/config.json
+  tls.crt.erb: config/certs/tls.crt
+  tls.key.erb: config/certs/tls.key
+  tls_ca.crt.erb: config/certs/tls_ca.crt
+  envoy_ctl.erb: bin/envoy_ctl
+
+packages:
+- envoy
+- pid_utils
+
+properties:
+  tls.cert:
+    description: "PEM-encoded tls certificate that can be used for client or server auth"
+  tls.key:
+    description: "PEM-encoded tls client key"
+  tls.ca_cert:
+    description: "PEM-encoded tls client CA certificate for asset upload/download"

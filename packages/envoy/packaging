@@ -1,0 +1,4 @@
+set -e
+
+mkdir "${BOSH_INSTALL_TARGET}/bin"
+cp envoy "${BOSH_INSTALL_TARGET}/bin"
