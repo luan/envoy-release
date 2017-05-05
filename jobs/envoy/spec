@@ -15,7 +15,14 @@ packages:
 properties:
   tls.cert:
     description: "PEM-encoded tls certificate that can be used for client or server auth"
+    default:
   tls.key:
     description: "PEM-encoded tls client key"
+    default:
   tls.ca_cert:
     description: "PEM-encoded tls client CA certificate for asset upload/download"
+    default:
+
+  proxy:
+    description: "list of addresses to proxy"
+    default: []

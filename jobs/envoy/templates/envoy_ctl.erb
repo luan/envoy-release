@@ -40,7 +40,14 @@ case $1 in
 
     set -e
 
-    /var/vcap/packages/envoy/bin/envoy --log-level trace \
+    <% p('proxy').each do |proxy| %>
+      <% src_port = proxy['host'].split(':').last %>
+      <% dst_port = proxy['address'].split(':').last %>
+      <% address = proxy['address'].split(':')[1].split('/').last %>
+      iptables -t nat -A OUTPUT -p tcp --dport <%= src_port %> -d <%= address %> -j DNAT --to-destination <%= address %>:<%= dst_port %>
+    <% end %>
+
+    exec chpst -u vcap:vcap /var/vcap/packages/envoy/bin/envoy --log-level trace \
       --config-path $CONF_DIR/config.json \
       2> >(tee -a $LOG_DIR/envoy.stderr.log | logger -p user.error -t vcap.envoy) \
       1> >(tee -a $LOG_DIR/envoy.stdout.log | logger -p user.info -t vcap.envoy) &
