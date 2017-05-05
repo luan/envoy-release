@@ -12,8 +12,8 @@
             "access_log": [
               {
                 "path": "/var/vcap/sys/log/envoy/ingress_http.log",
-                "filter": {"type": "not_healthcheck"},
-              }
+                "filter": {"type": "not_healthcheck"}
+              },
               {
                 "path": "/var/vcap/sys/log/envoy/ingress_http_error.log",
                 "filter": {"type": "logical_and", "filters": [
@@ -50,28 +50,35 @@
                       "retry_policy": {
                         "retry_on": "5xx,connect-failure,retriable-4xx,refused-stream",
                         "num_retries": 5,
-                        "per_try_timeout_ms": 3000,
+                        "per_try_timeout_ms": 3000
                       }
                     }
-                  ],
+                  ]
                 }
               ]
             },
             "filters": [
-              {
-                "type": "both",
-                "name": "health_check",
-                "config": {
-                  "pass_through_mode": true,
-                  "endpoint": "/v1/ping"
-                }
-              },
               {
                 "type": "decoder",
                 "name": "router",
                 "config": {}
               }
             ]
+          }
+        }
+      ]
+    },
+    {
+      "address": "tcp://127.0.0.1:18002",
+      "filters": [
+        {
+          "type": "read",
+          "name": "tcp_proxy",
+          "config": {
+            "stat_prefix": "sql_egress",
+            "route_config": {
+              "routes": [{"cluster": "sql-db"}]
+            }
           }
         }
       ]
@@ -98,12 +105,29 @@
           "path": "/v1/ping"
         },
         "ssl_context": {
-          "cert_chain_file": "<%= p('tls.cert') %>",
-          "private_key_file": "<%= p('tls.key') %>",
-          "ca_cert_file": "<%= p('tls.ca_cert') %>",
+          "cert_chain_file": "/var/vcap/jobs/envoy/config/certs/tls.crt",
+          "private_key_file": "/var/vcap/jobs/envoy/config/certs/tls.key",
+          "ca_cert_file": "/var/vcap/jobs/envoy/config/certs/tls_ca.crt",
           "verify_subject_alt_name": ["bbs.service.cf.internal"],
           "sni": "envoy-bbs"
-        }
+        },
+        "dns_refresh_rate_ms": 1000
+      },
+      {
+        "name": "sql-db",
+        "type": "strict_dns",
+        "connect_timeout_ms": 250,
+        "lb_type": "random",
+        "hosts": [{"url": "tcp://sql-db.service.cf.internal:3306"}],
+        "health_check": {
+          "type": "tcp",
+          "timeout_ms": 1000,
+          "interval_ms": 200,
+          "unhealthy_threshold": 3,
+          "healthy_threshold": 1,
+          "send": [],
+          "receive": []
+        },
         "dns_refresh_rate_ms": 1000
       }
     ]

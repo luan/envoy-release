@@ -1,4 +1,5 @@
 set -e
 
 mkdir "${BOSH_INSTALL_TARGET}/bin"
+chmod a+x envoy
 cp envoy "${BOSH_INSTALL_TARGET}/bin"

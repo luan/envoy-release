@@ -30,10 +30,22 @@ case $1 in
     # Allowed number of open file descriptors
     ulimit -n 100000
 
-    /var/vcap/packages/envoy/bin/envoy \
-      --config=$CONF_DIR/envoy.json \
+    set +e
+
+    getent hosts sql-db.service.cf.internal
+    if [[ "0" != "$?" ]]; then
+      echo "DNS is not up"
+      exit 1
+    fi
+
+    set -e
+
+    /var/vcap/packages/envoy/bin/envoy --log-level trace \
+      --config-path $CONF_DIR/config.json \
       2> >(tee -a $LOG_DIR/envoy.stderr.log | logger -p user.error -t vcap.envoy) \
-      1> >(tee -a $LOG_DIR/envoy.stdout.log | logger -p user.info -t vcap.envoy) & echo $! > $PIDFILE
+      1> >(tee -a $LOG_DIR/envoy.stdout.log | logger -p user.info -t vcap.envoy) &
+
+    echo $! > $PIDFILE
 
     ;;
 
